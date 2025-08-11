@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Somnia Mines - Web3 Gaming Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .network-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        .network-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .wallet-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .balance-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .balance {
+            background: linear-gradient(45deg, rgba(0, 255, 136, 0.1), rgba(0, 204, 255, 0.1));
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 15px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .connect-btn {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: #000;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        .connect-btn:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .game-area {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .game-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .game-stats {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .mines-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mine-cell {
+            aspect-ratio: 1;
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 2rem;
+            position: relative;
+            overflow: hidden;
+            min-height: 80px;
+        }
+
+        .mine-cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(0, 255, 136, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mine-cell:hover::before {
+            opacity: 1;
+        }
+
+        .mine-cell:hover {
+            border-color: #00ff88;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .mine-cell.revealed {
+            background: linear-gradient(145deg, #00ff88, #00ccff);
+            color: #000;
+            border-color: #00ff88;
+            transform: scale(1.05);
+            animation: revealGem 0.5s ease-out;
+        }
+
+        .mine-cell.mine {
+            background: linear-gradient(145deg, #ff4757, #ff3838);
+            color: #fff;
+            border-color: #ff4757;
+            animation: explode 0.6s ease-out;
+        }
+
+        .mine-cell.disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        @keyframes revealGem {
+            0% { transform: scale(0) rotate(180deg); }
+            50% { transform: scale(1.2) rotate(90deg); }
+            100% { transform: scale(1.05) rotate(0deg); }
+        }
+
+        @keyframes explode {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); box-shadow: 0 0 30px #ff4757; }
+            100% { transform: scale(1.1); }
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: fit-content;
+        }
+
+        .token-section {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .token-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .token-info {
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .mint-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .mint-input {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .mint-amount {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .mint-btn {
+            background: linear-gradient(45deg, #feca57, #ff9ff3);
+            color: #000;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .mint-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(254, 202, 87, 0.4);
+        }
+
+        .mint-btn:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .control-group {
+            margin-bottom: 2rem;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            color: #ccc;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .bet-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: border-color 0.3s ease;
+        }
+
+        .bet-input:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+        }
+
+        .bet-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .bet-btn {
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .bet-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #00ff88;
+            transform: translateY(-1px);
+        }
+
+        .mines-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .mine-count-btn {
+            padding: 0.75rem;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 700;
+        }
+
+        .mine-count-btn.active {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: #000;
+            border-color: #00ff88;
+        }
+
+        .mine-count-btn:hover {
+            border-color: #00ff88;
+            transform: translateY(-1px);
+        }
+
+        .game-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .play-button {
+            width: 100%;
+            padding: 1.25rem;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: #000;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .play-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0, 255, 136, 0.4);
+        }
+
+        .play-button:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .cashout-button {
+            width: 100%;
+            padding: 1.25rem;
+            background: linear-gradient(45deg, #feca57, #ff9ff3);
+            color: #000;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .cashout-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(254, 202, 87, 0.4);
+        }
+
+        .game-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-card {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .info-card .label {
+            font-size: 0.8rem;
+            color: #ccc;
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .multiplier-display {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 2rem;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .multiplier-value {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #feca57, #ff9ff3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .multiplier-label {
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .transaction-status {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .tx-pending {
+            color: #feca57;
+            border-color: rgba(254, 202, 87, 0.3);
+        }
+
+        .tx-success {
+            color: #00ff88;
+            border-color: rgba(0, 255, 136, 0.3);
+        }
+
+        .tx-error {
+            color: #ff4757;
+            border-color: rgba(255, 71, 87, 0.3);
+        }
+
+        .recent-games {
+            margin-top: 2rem;
+        }
+
+        .recent-games h3 {
+            margin-bottom: 1rem;
+            color: #ccc;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .game-history {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .win {
+            color: #00ff88;
+        }
+
+        .loss {
+            color: #ff4757;
+        }
+
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 15px;
+            font-weight: 600;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 2000;
+            max-width: 350px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.win {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: #000;
+        }
+
+        .notification.loss {
+            background: linear-gradient(45deg, #ff4757, #ff3838);
+            color: #fff;
+        }
+
+        .notification.info {
+            background: linear-gradient(45deg, #feca57, #ff9ff3);
+            color: #000;
+        }
+
+        .contract-info {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+
+        .contract-address {
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.5rem;
+            border-radius: 5px;
+            margin-top: 0.5rem;
+            word-break: break-all;
+            color: #00ff88;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .mines-grid {
+                max-width: 350px;
+                gap: 8px;
+                padding: 1.5rem;
+            }
+
+            .mine-cell {
+                min-height: 60px;
+                font-size: 1.5rem;
+            }
+            
+            .header {
+                padding: 1rem;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .balance-group {
+                flex-direction: row;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            💎 Somnia Mines
+        </div>
+        <div class="network-indicator">
+            <div class="network-dot"></div>
+            <span>Somnia Testnet</span>
+        </div>
+        <div class="wallet-section">
+            <div class="balance-group">
+                <div class="balance">STT: <span id="somBalance">0.00</span></div>
+                <div class="balance">GEM: <span id="gemBalance">0</span></div>
+            </div>
+            <button id="connectWallet" class="connect-btn">Connect Wallet</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="game-area">
+            <div class="game-header">
+                <div class="game-title">💎 Mines</div>
+                <div class="game-stats">
+                    <div>Games: <span id="totalGames">0</span></div>
+                    <div>Win Rate: <span id="winRate">0</span>%</div>
+                </div>
+            </div>
+
+            <div class="mines-grid" id="minesGrid">
+                <!-- 25 cells will be generated here -->
+            </div>
+
+            <div class="multiplier-display">
+                <div class="multiplier-value" id="multiplierValue">1.00x</div>
+                <div class="multiplier-label">Current Multiplier</div>
+            </div>
+        </div>
+
+        <div class="controls-panel">
+            <div class="token-section">
+                <div class="token-header">
+                    <h3>🏆 GEM Token</h3>
+                </div>
+                <div class="token-info">
+                    Get GEM tokens to play! Exchange 0.01 STT for 1000 GEM tokens.
+                </div>
+                <div class="mint-section">
+                    <div class="mint-input">
+                        <input type="number" id="mintAmount" class="mint-amount" value="1000" min="100" max="10000" step="100">
+                        <button id="mintBtn" class="mint-btn">Mint GEM</button>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #ccc; text-align: center;">
+                        Cost: <span id="mintCost">0.01</span> STT
+                    </div>
+                </div>
+            </div>
+
+            <div id="transactionStatus" class="transaction-status" style="display: none;"></div>
+
+            <div class="game-info">
+                <div class="info-card">
+                    <div class="value" id="gemsFound">0</div>
+                    <div class="label">Gems Found</div>
+                </div>
+                <div class="info-card">
+                    <div class="value" id="gemsRemaining">24</div>
+                    <div class="label">Gems Left</div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Bet Amount (GEM)</label>
+                <input type="number" id="betAmount" class="bet-input" value="10" min="1" max="1000">
+                <div class="bet-buttons">
+                    <button class="bet-btn" onclick="setBetAmount(10)">10</button>
+                    <button class="bet-btn" onclick="setBetAmount(50)">50</button>
+                    <button class="bet-btn" onclick="setBetAmount(100)">100</button>
+                    <button class="bet-btn" onclick="setBetAmount(500)">500</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Number of Mines</label>
+                <div class="mines-selector">
+                    <button class="mine-count-btn" onclick="setMineCount(1)">1</button>
+                    <button class="mine-count-btn active" onclick="setMineCount(3)">3</button>
+                    <button class="mine-count-btn" onclick="setMineCount(5)">5</button>
+                    <button class="mine-count-btn" onclick="setMineCount(10)">10</button>
+                </div>
+            </div>
+
+            <div class="game-actions">
+                <button id="playButton" class="play-button" onclick="startGame()">
+                    🎯 Start Game
+                </button>
+                <button id="cashoutButton" class="cashout-button" onclick="cashOut()" style="display: none;">
+                    💰 Cash Out
+                </button>
+            </div>
+
+            <div class="contract-info">
+                <strong>Smart Contracts:</strong>
+                <div class="contract-address" id="gameContract">Game: Not deployed</div>
+                <div class="contract-address" id="tokenContract">GEM: Not deployed</div>
+            </div>
+
+            <div class="recent-games">
+                <h3>Recent Games</h3>
+                <div class="game-history" id="gameHistory">
+                    <div class="history-item">
+                        <span>No games yet</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // Somnia Testnet Configuration
+        const SOMNIA_CONFIG = {
+            chainId: 50312, // Somnia Testnet chain ID (decimal)
+            chainName: 'Somnia Testnet',
+            nativeCurrency: {
+                name: 'STT',
+                symbol: 'STT',
+                decimals: 18
+            },
+            rpcUrls: ['https://dream-rpc.somnia.network/'],
+            blockExplorerUrls: ['https://somnia.w3us.site/']
+        };
+
+        // On-chain Contract ABIs (minimal)
+        const GEM_TOKEN_ABI = [
+            "function purchaseTokens() payable",
+            "function balanceOf(address account) external view returns (uint256)",
+            "function decimals() external view returns (uint8)",
+            "function approve(address spender, uint256 amount) external returns (bool)",
+            "function allowance(address owner, address spender) external view returns (uint256)"
+        ];
+
+        const MINES_GAME_ABI = [
+            // Core gameplay
+            "function startGame(uint256 betAmount, uint8 mineCount, uint256 clientSeed) external returns (uint256)",
+            "function revealCell(uint256 gameId, uint8 cellIndex) external",
+            "function cashOut(uint256 gameId) external",
+            "function cashOutWithClaim(uint256 gameId, uint8 claimedGemsFound) external",
+            "function forfeitGame(uint256 gameId) external",
+            // Views
+            "function getGame(uint256 gameId) external view returns (address player, uint256 betAmount, uint8 mineCount, uint8 gemsFound, uint256 currentMultiplier, uint8 state, bool[] revealedCells)",
+            "function getPlayerStats(address player) external view returns (uint256 totalGames, uint256 totalWins, uint256[] memory gameIds)",
+            // Events (for parsing logs)
+            "event GameStarted(uint256 indexed gameId, address indexed player, uint256 betAmount, uint8 mineCount)",
+            "event CellRevealed(uint256 indexed gameId, uint8 cellIndex, bool isMine, uint256 newMultiplier)",
+            "event GameCompleted(uint256 indexed gameId, address indexed player, uint256 winAmount, bool won)"
+        ];
+
+        // Contract addresses (Somnia testnet)
+        const CONTRACT_ADDRESSES = {
+            gemToken: '0x9d6c12B257015849805c0F2935Ee855b398dFF17',
+            minesGame: '0xf31a4Da3de241355b8ebE0786651B467eeCfE932'
+        };
+
+        // Game state
+        let gameState = {
+            isPlaying: false,
+            somBalance: 0,
+            gemBalance: 0,
+            betAmount: 10,
+            mineCount: 3,
+            gemsFound: 0,
+            currentMultiplier: 1.00,
+            minePositions: [],
+            revealedCells: [],
+            gameHistory: [],
+            totalGames: 0,
+            totalWins: 0,
+            currentGameId: 0,
+            provider: null,
+            signer: null,
+            gemContract: null,
+            gameContract: null,
+            userAddress: null
+        };
+
+        // Multiplier tables (same as before)
+        const multiplierTables = {
+            1: [0, 1.03, 1.07, 1.12, 1.18, 1.24, 1.32, 1.41, 1.53, 1.67, 1.84, 2.06, 2.35, 2.75, 3.32, 4.12, 5.29, 7.09, 9.98, 15.08, 24.47, 43.72, 87.91, 219.78, 879.12],
+            3: [0, 1.08, 1.17, 1.29, 1.43, 1.60, 1.80, 2.06, 2.38, 2.80, 3.35, 4.09, 5.11, 6.54, 8.59, 11.63, 16.28, 23.66, 36.06, 58.41, 102.17, 196.29, 426.12, 1065.31],
+            5: [0, 1.13, 1.29, 1.48, 1.71, 2.00, 2.37, 2.85, 3.47, 4.29, 5.37, 6.82, 8.79, 11.52, 15.41, 21.33, 30.59, 45.28, 70.27, 114.75, 200.81, 391.11, 877.50],
+            10: [0, 1.32, 1.75, 2.35, 3.18, 4.35, 6.00, 8.35, 11.69, 16.54, 23.64, 34.08, 49.43, 72.18, 106.09, 157.18, 234.95, 354.31, 540.61, 834.9, 1311.11, 2096.89, 3411.11, 5775.56, 10000]
+        };
+
+        // Initialize the game
+        async function initGame() {
+            createMinesGrid();
+            updateDisplay();
+            updateContractInfo();
+            
+            // Check if wallet is already connected
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0) {
+                        await connectWallet();
+                    }
+                } catch (error) {
+                    console.log('No wallet connected');
+                }
+            }
+        }
+
+        // Connect to wallet and Somnia network
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                showNotification('Please install MetaMask to play!', 'info');
+                return;
+            }
+
+            try {
+                showTransactionStatus('Connecting to wallet...', 'pending');
+                
+                // Request account access
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // Check if we're on Somnia testnet, if not switch/add it
+                await switchToSomniaNetwork();
+                
+                // Initialize ethers provider and signer
+                gameState.provider = new ethers.BrowserProvider(window.ethereum);
+                gameState.signer = await gameState.provider.getSigner();
+                gameState.userAddress = await gameState.signer.getAddress();
+                
+                // Initialize contracts
+                await initializeContracts();
+                
+                // Update balances
+                await updateBalances();
+                
+                // Update UI
+                document.getElementById('connectWallet').textContent = `${gameState.userAddress.slice(0, 6)}...${gameState.userAddress.slice(-4)}`;
+                document.getElementById('connectWallet').disabled = true;
+                
+                hideTransactionStatus();
+                showNotification('Successfully connected to Somnia Testnet!', 'win');
+                
+            } catch (error) {
+                console.error('Wallet connection error:', error);
+                showTransactionStatus('Connection failed', 'error');
+                setTimeout(hideTransactionStatus, 3000);
+                showNotification('Failed to connect wallet. Please try again.', 'loss');
+            }
+        }
+
+        // Switch to Somnia network
+        async function switchToSomniaNetwork() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: `0x${SOMNIA_CONFIG.chainId.toString(16)}` }], // Convert to hex for MetaMask
+                });
+            } catch (switchError) {
+                // This error code indicates that the chain has not been added to MetaMask
+                if (switchError.code === 4902) {
+                    const networkConfig = {
+                        ...SOMNIA_CONFIG,
+                        chainId: `0x${SOMNIA_CONFIG.chainId.toString(16)}` // Convert to hex for MetaMask
+                    };
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [networkConfig],
+                    });
+                } else {
+                    throw switchError;
+                }
+            }
+        }
+
+        // Initialize smart contracts
+        async function initializeContracts() {
+            try {
+                const signer = gameState.signer;
+                gameState.gemContract = new ethers.Contract(CONTRACT_ADDRESSES.gemToken, GEM_TOKEN_ABI, signer);
+                gameState.gameContract = new ethers.Contract(CONTRACT_ADDRESSES.minesGame, MINES_GAME_ABI, signer);
+            } catch (error) {
+                console.error('Contract initialization error:', error);
+                throw error;
+            }
+        }
+
+        // Update balances from blockchain
+        async function updateBalances() {
+            try {
+                if (!gameState.signer) return;
+                
+                // Get STT balance
+                const somBalanceWei = await gameState.provider.getBalance(gameState.userAddress);
+                gameState.somBalance = parseFloat(ethers.formatEther(somBalanceWei));
+                
+                // Get GEM balance
+                const gemBal = await gameState.gemContract.balanceOf(gameState.userAddress);
+                gameState.gemBalance = parseFloat(ethers.formatEther(gemBal));
+                
+                updateBalanceDisplay();
+            } catch (error) {
+                console.error('Balance update error:', error);
+            }
+        }
+
+        // Mint (purchase) GEM tokens on-chain
+        async function mintGemTokens() {
+            if (!gameState.signer) {
+                showNotification('Please connect your wallet first!', 'info');
+                return;
+            }
+
+            const mintAmount = parseInt(document.getElementById('mintAmount').value);
+            const cost = mintAmount * 0.00001; // 0.01 STT per 1000 GEM
+
+            if (cost > gameState.somBalance) {
+                showNotification('Insufficient STT balance!', 'loss');
+                return;
+            }
+
+            try {
+                document.getElementById('mintBtn').disabled = true;
+                showTransactionStatus(`Minting ${mintAmount} GEM tokens...`, 'pending');
+
+                // Execute on-chain purchase
+                const valueWei = ethers.parseEther(cost.toFixed(6));
+                const tx = await gameState.gemContract.purchaseTokens({ value: valueWei });
+                await tx.wait();
+
+                showTransactionStatus('Purchase confirmed!', 'success');
+                showNotification(`Successfully minted ${mintAmount} GEM tokens!`, 'win');
+
+                await updateBalances();
+                setTimeout(hideTransactionStatus, 3000);
+
+            } catch (error) {
+                console.error('Minting error:', error);
+                showTransactionStatus('Minting failed', 'error');
+                showNotification('Failed to mint tokens. Please try again.', 'loss');
+                setTimeout(hideTransactionStatus, 3000);
+            } finally {
+                document.getElementById('mintBtn').disabled = false;
+            }
+        }
+
+        // Create the mines grid
+        function createMinesGrid() {
+            const grid = document.getElementById('minesGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'mine-cell';
+                cell.addEventListener('click', () => revealCell(i));
+                grid.appendChild(cell);
+            }
+        }
+
+        // Set bet amount
+        function setBetAmount(amount) {
+            if (gameState.isPlaying) return;
+            if (amount <= gameState.gemBalance) {
+                gameState.betAmount = amount;
+                document.getElementById('betAmount').value = amount;
+            }
+        }
+
+        // Set mine count
+        function setMineCount(count) {
+            if (gameState.isPlaying) return;
+            
+            gameState.mineCount = count;
+            
+            // Update active button
+            document.querySelectorAll('.mine-count-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            updateDisplay();
+        }
+
+        // Start new game (on-chain)
+        async function startGame() {
+            if (!gameState.signer) {
+                showNotification('Please connect your wallet first!', 'info');
+                return;
+            }
+
+            const betAmount = parseInt(document.getElementById('betAmount').value);
+            
+            if (betAmount < 1) {
+                showNotification('Minimum bet is 1 GEM!', 'info');
+                return;
+            }
+
+            try {
+                showTransactionStatus('Starting game on blockchain...', 'pending');
+                
+                // Ensure allowance and start game on-chain
+                const betWei = ethers.parseEther(betAmount.toString());
+                const currentAllowance = await gameState.gemContract.allowance(gameState.userAddress, CONTRACT_ADDRESSES.minesGame);
+                if (currentAllowance < betWei) {
+                    const approveTx = await gameState.gemContract.approve(CONTRACT_ADDRESSES.minesGame, betWei);
+                    await approveTx.wait();
+                }
+                const clientSeed = BigInt('0x' + crypto.getRandomValues(new Uint32Array(4)).reduce((acc, v) => acc + v.toString(16).padStart(8, '0'), ''));
+                const tx = await gameState.gameContract.startGame(betWei, gameState.mineCount, clientSeed);
+                const receipt = await tx.wait();
+
+                // Parse GameStarted event for gameId
+                const iface = new ethers.Interface(MINES_GAME_ABI);
+                let gameId = 0;
+                for (const log of receipt.logs) {
+                    try {
+                        const parsed = iface.parseLog(log);
+                        if (parsed && parsed.name === 'GameStarted') {
+                            gameId = Number(parsed.args.gameId);
+                            break;
+                        }
+                    } catch (_) {}
+                }
+                gameState.currentGameId = gameId;
+                
+                // Initialize game state
+                gameState.isPlaying = true;
+                gameState.betAmount = betAmount;
+                gameState.gemsFound = 0;
+                gameState.currentMultiplier = 1.00;
+                gameState.revealedCells = [];
+                
+                // Update UI
+                document.getElementById('playButton').style.display = 'none';
+                document.getElementById('cashoutButton').style.display = 'block';
+                
+                // Reset grid
+                createMinesGrid();
+                
+                // Sync from chain
+                await syncGameStateFromChain();
+                
+                hideTransactionStatus();
+                showNotification(`Game started! Find gems and avoid ${gameState.mineCount} mines.`, 'info');
+                
+            } catch (error) {
+                console.error('Start game error:', error);
+                showTransactionStatus('Failed to start game', 'error');
+                setTimeout(hideTransactionStatus, 3000);
+                showNotification('Failed to start game. Please try again.', 'loss');
+            }
+        }
+
+        // Generate random mine positions
+        function generateMinePositions(mineCount) {
+            const positions = new Set();
+            while (positions.size < mineCount) {
+                positions.add(Math.floor(Math.random() * 25));
+            }
+            return Array.from(positions);
+        }
+
+        // Reveal a cell (off-chain UI only)
+        async function revealCell(index) {
+            if (!gameState.isPlaying || gameState.revealedCells.includes(index)) {
+                return;
+            }
+
+            const cell = document.querySelectorAll('.mine-cell')[index];
+            gameState.revealedCells.push(index);
+
+            if (gameState.minePositions.includes(index)) {
+                // Hit a mine - game over (off-chain)
+                cell.classList.add('mine');
+                cell.innerHTML = '💣';
+                await endGame(false);
+                return;
+            }
+
+            // Found a gem
+            cell.classList.add('revealed');
+            cell.innerHTML = '💎';
+            gameState.gemsFound++;
+
+            // Update multiplier from local table for UX; final payout calculated on-chain at cashout
+            const multiplierTable = multiplierTables[gameState.mineCount];
+            gameState.currentMultiplier = multiplierTable[gameState.gemsFound];
+
+            updateDisplay();
+
+            const totalSafeCells = 25 - gameState.mineCount;
+            if (gameState.gemsFound === totalSafeCells) {
+                await endGame(true);
+            }
+        }
+
+        // Cash out (single on-chain txn using claimed progress)
+        async function cashOut() {
+            if (!gameState.isPlaying || gameState.gemsFound === 0) {
+                return;
+            }
+            
+            try {
+                showTransactionStatus('Cashing out on blockchain...', 'pending');
+                // Compute expected win amount before cashout
+                const expectedWin = Math.floor(gameState.betAmount * gameState.currentMultiplier);
+
+                // Single tx: settle on-chain with claimed gemsFound
+                const tx = await gameState.gameContract.cashOutWithClaim(gameState.currentGameId, gameState.gemsFound);
+                await tx.wait();
+
+                addToHistory(true, gameState.gemsFound, gameState.betAmount, expectedWin);
+                hideTransactionStatus();
+                showNotification(`Cashed out! Won ${expectedWin} GEM (${gameState.currentMultiplier}x)`, 'win');
+                
+                await updateBalances();
+                resetGame();
+                
+            } catch (error) {
+                console.error('Cash out error:', error);
+                showTransactionStatus('Cash out failed', 'error');
+                setTimeout(hideTransactionStatus, 3000);
+                showNotification('Failed to cash out. Please try again.', 'loss');
+            }
+        }
+
+        // Sync game state from chain into UI; returns 'lost' | 'won' | 'active'
+        async function syncGameStateFromChain() {
+            try {
+                const g = await gameState.gameContract.getGame(gameState.currentGameId);
+                // g = [player, betAmount, mineCount, gemsFound, currentMultiplier, state, revealedCells]
+                gameState.gemsFound = Number(g[3]);
+                gameState.currentMultiplier = parseFloat(ethers.formatEther(g[4]));
+                const state = Number(g[5]); // 0 Active, 1 Completed, 2 Abandoned
+                gameState.revealedCells = g[6].map((v, i) => v ? i : null).filter(v => v !== null);
+
+                updateDisplay();
+                await updateBalances();
+
+                if (state === 1) {
+                    // Completed; determine win/lose by whether gemsFound > 0 and maybe compare?
+                    // If completed due to hitting mine on reveal, treat as lost here
+                    const totalSafeCells = 25 - gameState.mineCount;
+                    if (gameState.gemsFound === totalSafeCells) {
+                        return 'won';
+                    }
+                    return 'lost';
+                }
+                return 'active';
+            } catch (e) {
+                console.error('syncGameStateFromChain error', e);
+                return 'active';
+            }
+        }
+
+        // End game
+        async function endGame(won) {
+            gameState.isPlaying = false;
+            gameState.totalGames++;
+            
+            if (won) {
+                gameState.totalWins++;
+                const winAmount = Math.floor(gameState.betAmount * gameState.currentMultiplier);
+                gameState.gemBalance += winAmount;
+                addToHistory(true, gameState.gemsFound, gameState.betAmount, winAmount);
+                showNotification(`You won! ${winAmount} GEM (${gameState.currentMultiplier}x)`, 'win');
+            } else {
+                addToHistory(false, gameState.gemsFound, gameState.betAmount, 0);
+                showNotification(`Mine hit! Lost ${gameState.betAmount} GEM`, 'loss');
+                
+                // Reveal all mines
+                gameState.minePositions.forEach(pos => {
+                    const cell = document.querySelectorAll('.mine-cell')[pos];
+                    if (!gameState.revealedCells.includes(pos)) {
+                        cell.classList.add('mine');
+                        cell.innerHTML = '💣';
+                    }
+                });
+            }
+            
+            // Disable all cells
+            document.querySelectorAll('.mine-cell').forEach(cell => {
+                cell.classList.add('disabled');
+            });
+            
+            await updateBalances();
+            setTimeout(resetGame, 3000);
+        }
+
+        // Reset game UI
+        function resetGame() {
+            gameState.isPlaying = false;
+            gameState.gemsFound = 0;
+            gameState.currentMultiplier = 1.00;
+            gameState.revealedCells = [];
+            gameState.currentGameId = 0;
+            
+            document.getElementById('playButton').style.display = 'block';
+            document.getElementById('cashoutButton').style.display = 'none';
+            
+            createMinesGrid();
+            updateDisplay();
+        }
+
+        // Add game to history
+        function addToHistory(won, gems, betAmount, winAmount) {
+            const game = {
+                won,
+                gems,
+                betAmount,
+                winAmount,
+                mines: gameState.mineCount,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            
+            gameState.gameHistory.unshift(game);
+            if (gameState.gameHistory.length > 10) {
+                gameState.gameHistory.pop();
+            }
+            
+            updateGameHistory();
+        }
+
+        // Update game history display
+        function updateGameHistory() {
+            const historyEl = document.getElementById('gameHistory');
+            historyEl.innerHTML = '';
+            
+            if (gameState.gameHistory.length === 0) {
+                historyEl.innerHTML = '<div class="history-item"><span>No games yet</span></div>';
+                return;
+            }
+            
+            gameState.gameHistory.forEach(game => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                
+                const result = game.won ? `+${game.winAmount}` : `-${game.betAmount}`;
+                const resultClass = game.won ? 'win' : 'loss';
+                
+                item.innerHTML = `
+                    <span>${game.gems} gems, ${game.mines} mines</span>
+                    <span class="${resultClass}">${result} GEM</span>
+                `;
+                
+                historyEl.appendChild(item);
+            });
+        }
+
+        // Update display
+        function updateDisplay() {
+            document.getElementById('gemsFound').textContent = gameState.gemsFound;
+            document.getElementById('gemsRemaining').textContent = 25 - gameState.mineCount - gameState.gemsFound;
+            document.getElementById('multiplierValue').textContent = gameState.currentMultiplier.toFixed(2) + 'x';
+            document.getElementById('totalGames').textContent = gameState.totalGames;
+            
+            const winRate = gameState.totalGames > 0 ? ((gameState.totalWins / gameState.totalGames) * 100).toFixed(1) : 0;
+            document.getElementById('winRate').textContent = winRate;
+        }
+
+        // Update balance display
+        function updateBalanceDisplay() {
+            document.getElementById('somBalance').textContent = gameState.somBalance.toFixed(4);
+            document.getElementById('gemBalance').textContent = gameState.gemBalance.toLocaleString();
+            
+            // Update mint cost
+            const mintAmount = parseInt(document.getElementById('mintAmount').value) || 1000;
+            const cost = (mintAmount * 0.00001).toFixed(4);
+            document.getElementById('mintCost').textContent = cost;
+        }
+
+        // Update contract info
+        function updateContractInfo() {
+            document.getElementById('gameContract').textContent = `Game: ${CONTRACT_ADDRESSES.minesGame}`;
+            document.getElementById('tokenContract').textContent = `GEM: ${CONTRACT_ADDRESSES.gemToken}`;
+        }
+
+        // Show transaction status
+        function showTransactionStatus(message, type) {
+            const statusEl = document.getElementById('transactionStatus');
+            statusEl.textContent = message;
+            statusEl.className = `transaction-status tx-${type}`;
+            statusEl.style.display = 'block';
+        }
+
+        // Hide transaction status
+        function hideTransactionStatus() {
+            document.getElementById('transactionStatus').style.display = 'none';
+        }
+
+        // Show notification
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        // Event Listeners
+        document.getElementById('connectWallet').addEventListener('click', connectWallet);
+        document.getElementById('mintBtn').addEventListener('click', mintGemTokens);
+        
+        // Update mint cost when amount changes
+        document.getElementById('mintAmount').addEventListener('input', (e) => {
+            const amount = parseInt(e.target.value) || 1000;
+            const cost = (amount * 0.00001).toFixed(4);
+            document.getElementById('mintCost').textContent = cost;
+        });
+
+        // Handle bet amount input
+        document.getElementById('betAmount').addEventListener('input', (e) => {
+            if (!gameState.isPlaying) {
+                const value = parseInt(e.target.value) || 0;
+                gameState.betAmount = Math.min(Math.max(value, 1), gameState.gemBalance);
+                e.target.value = gameState.betAmount;
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !gameState.isPlaying) {
+                e.preventDefault();
+                startGame();
+            } else if (e.code === 'Escape' && gameState.isPlaying && gameState.gemsFound > 0) {
+                e.preventDefault();
+                cashOut();
+            }
+        });
+
+        // Listen for account/network changes
+        if (typeof window.ethereum !== 'undefined') {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    // User disconnected wallet
+                    gameState.signer = null;
+                    gameState.userAddress = null;
+                    document.getElementById('connectWallet').textContent = 'Connect Wallet';
+                    document.getElementById('connectWallet').disabled = false;
+                    showNotification('Wallet disconnected', 'info');
+                } else {
+                    // Account changed
+                    connectWallet();
+                }
+            });
+
+            window.ethereum.on('chainChanged', (chainId) => {
+                const currentChainId = parseInt(chainId, 16);
+                if (currentChainId !== SOMNIA_CONFIG.chainId) {
+                    showNotification('Please switch to Somnia Testnet', 'info');
+                }
+            });
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initGame);
+
+        // Export for debugging
+        window.gameState = gameState;
+    </script>
+</body>
+</html>
