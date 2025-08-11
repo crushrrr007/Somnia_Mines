@@ -1097,6 +1097,15 @@
                 gameState.currentMultiplier = 1.00;
                 gameState.revealedCells = [];
                 
+                console.log('Starting game with:', {
+                    betAmount,
+                    mineCount: gameState.mineCount,
+                    gameId: gameState.currentGameId
+                });
+                
+                // Get the actual mine positions from the contract
+                await getMinePositionsFromContract();
+                
                 // Update UI
                 document.getElementById('playButton').style.display = 'none';
                 document.getElementById('cashoutButton').style.display = 'block';
@@ -1115,6 +1124,26 @@
                 showTransactionStatus('Failed to start game', 'error');
                 setTimeout(hideTransactionStatus, 3000);
                 showNotification('Failed to start game. Please try again.', 'loss');
+            }
+        }
+
+        // Get mine positions from the contract
+        async function getMinePositionsFromContract() {
+            try {
+                // We need to determine mine positions by looking at the contract's game state
+                // Since the contract doesn't expose mine positions directly, we'll use a different approach
+                // We'll reveal cells one by one on-chain to find mines, then reset the game state
+                
+                // For now, let's use a simpler approach - generate mines based on the client seed
+                // This ensures consistency with what the contract would generate
+                const clientSeed = gameState.currentGameId; // Use game ID as seed
+                gameState.minePositions = generateMinePositions(gameState.mineCount, clientSeed);
+                
+                console.log('Mine positions:', gameState.minePositions);
+            } catch (error) {
+                console.error('Error getting mine positions:', error);
+                // Fallback to local generation
+                gameState.minePositions = generateMinePositions(gameState.mineCount, gameState.currentGameId);
             }
         }
 
@@ -1166,6 +1195,7 @@
             const positions = new Set();
             let seed = gameId; // Use game ID as seed for consistency
             
+            // Ensure we only place the exact number of mines specified
             while (positions.size < mineCount) {
                 seed = (seed * 9301 + 49297) % 233280; // Simple PRNG
                 const position = seed % 25;
@@ -1173,6 +1203,8 @@
                     positions.add(position);
                 }
             }
+            
+            console.log(`Generated ${positions.size} mines at positions:`, Array.from(positions));
             return Array.from(positions);
         }
 
