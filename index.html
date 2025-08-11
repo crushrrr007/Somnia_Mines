@@ -1118,7 +1118,7 @@
             }
         }
 
-        // Reveal a cell (on-chain)
+        // Reveal a cell (off-chain UI for instant response)
         async function revealCell(index) {
             if (!gameState.isPlaying || gameState.revealedCells.includes(index)) {
                 return;
@@ -1127,41 +1127,53 @@
             const cell = document.querySelectorAll('.mine-cell')[index];
             gameState.revealedCells.push(index);
 
-            // Check if this cell is a mine by calling the contract
-            try {
-                const tx = await gameState.gameContract.revealCell(gameState.currentGameId, index);
-                await tx.wait();
+            // Generate mine positions locally using the client seed for consistency
+            if (!gameState.minePositions || gameState.minePositions.length === 0) {
+                gameState.minePositions = generateMinePositions(gameState.mineCount, gameState.currentGameId);
+            }
+
+            // Check if this cell is a mine
+            if (gameState.minePositions.includes(index)) {
+                // Hit a mine - game over
+                cell.classList.add('mine');
+                cell.innerHTML = '💣';
+                await endGame(false);
+                return;
+            } else {
+                // Found a gem
+                cell.classList.add('revealed');
+                cell.innerHTML = '💎';
+                gameState.gemsFound++;
                 
-                // After revealing, sync the game state from chain
-                const ended = await syncGameStateFromChain();
-                
-                if (ended === 'lost') {
-                    // Hit a mine - game over
-                    cell.classList.add('mine');
-                    cell.innerHTML = '💣';
-                    await endGame(false);
-                    return;
-                } else if (ended === 'won') {
-                    // All safe cells revealed
-                    cell.classList.add('revealed');
-                    cell.innerHTML = '💎';
-                    await endGame(true);
-                    return;
-                } else {
-                    // Found a gem, continue playing
-                    cell.classList.add('revealed');
-                    cell.innerHTML = '💎';
+                // Update multiplier from local table for UX
+                const multiplierTable = multiplierTables[gameState.mineCount];
+                if (gameState.gemsFound < multiplierTable.length) {
+                    gameState.currentMultiplier = multiplierTable[gameState.gemsFound];
                 }
                 
                 updateDisplay();
                 
-            } catch (error) {
-                console.error('Reveal cell error:', error);
-                showNotification('Error revealing cell. Please try again.', 'loss');
-                // Revert the UI change if the transaction failed
-                gameState.revealedCells.pop();
-                return;
+                // Check if won (all safe cells revealed)
+                const totalSafeCells = 25 - gameState.mineCount;
+                if (gameState.gemsFound === totalSafeCells) {
+                    await endGame(true);
+                }
             }
+        }
+
+        // Generate mine positions using deterministic randomness
+        function generateMinePositions(mineCount, gameId) {
+            const positions = new Set();
+            let seed = gameId; // Use game ID as seed for consistency
+            
+            while (positions.size < mineCount) {
+                seed = (seed * 9301 + 49297) % 233280; // Simple PRNG
+                const position = seed % 25;
+                if (!positions.has(position)) {
+                    positions.add(position);
+                }
+            }
+            return Array.from(positions);
         }
 
         // Cash out (single on-chain txn using claimed progress)
