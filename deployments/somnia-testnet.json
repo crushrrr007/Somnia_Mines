@@ -1,0 +1,20 @@
+{
+  "network": "Somnia Testnet",
+  "chainId": 50312,
+  "timestamp": "2025-08-11T15:00:08.395Z",
+  "deployer": "0x58C9EA6733576376922F53D50c431F11651b8F1B",
+  "contracts": {
+    "GEMToken": {
+      "address": "0x9d6c12B257015849805c0F2935Ee855b398dFF17",
+      "blockNumber": 147038305
+    },
+    "SomniaMines": {
+      "address": "0xf31a4Da3de241355b8ebE0786651B467eeCfE932",
+      "blockNumber": 147038309
+    }
+  },
+  "explorer": {
+    "gemToken": "https://shannon-explorer.somnia.network/address/0x9d6c12B257015849805c0F2935Ee855b398dFF17",
+    "minesGame": "https://shannon-explorer.somnia.network/address/0xf31a4Da3de241355b8ebE0786651B467eeCfE932"
+  }
+}

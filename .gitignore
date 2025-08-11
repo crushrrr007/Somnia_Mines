@@ -1,0 +1,40 @@
+# Node / Hardhat / VSCode
+node_modules/
+.env
+.env.local
+.DS_Store
+dist/
+build/
+cache/
+
+# Hardhat artifacts and build-info
+artifacts/
+!artifacts/contracts/**/!(dbg).json
+!artifacts/@openzeppelin/**/!(dbg).json
+artifacts/build-info/
+
+# Coverage and reports
+coverage/
+coverage.json
+gasReporterOutput.json
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
+.idea/
+
+# Typechain
+typechain/
+typechain-types/
+
+# OS files
+Thumbs.db
+*.swp
+*.swo
+
+# Generated deployments if any (keep JSON summary)
+deployments/*.tmp

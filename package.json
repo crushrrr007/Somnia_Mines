@@ -1,0 +1,62 @@
+{
+    "name": "somnia-mines-contracts",
+    "version": "1.0.0",
+    "description": "Smart contracts for Somnia Mines game",
+    "main": "index.js",
+    "scripts": {
+        "compile": "hardhat compile",
+        "test": "hardhat test",
+        "deploy": "hardhat run scripts/deploy.js --network somnia-testnet",
+        "deploy-local": "hardhat run scripts/deploy.js --network localhost",
+        "verify": "hardhat verify --network somnia-testnet",
+        "node": "hardhat node",
+        "clean": "hardhat clean",
+        "size": "hardhat size-contracts",
+        "coverage": "hardhat coverage",
+        "gas-report": "REPORT_GAS=true hardhat test",
+        "flatten": "hardhat flatten"
+    },
+    "keywords": [
+        "blockchain",
+        "ethereum",
+        "solidity",
+        "somnia",
+        "mines",
+        "casino",
+        "gaming",
+        "defi"
+    ],
+    "author": "Somnia Mines Team",
+    "license": "MIT",
+    "devDependencies": {
+        "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+        "@nomicfoundation/hardhat-ethers": "^3.0.0",
+        "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+        "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+        "@nomicfoundation/hardhat-verify": "^1.0.0",
+        "@typechain/ethers-v6": "^0.4.0",
+        "@typechain/hardhat": "^8.0.0",
+        "@types/chai": "^4.2.0",
+        "@types/mocha": ">=9.1.0",
+        "chai": "^4.2.0",
+        "dotenv": "^16.6.1",
+        "ethers": "^6.4.0",
+        "hardhat": "^2.26.2",
+        "hardhat-contract-sizer": "^2.10.0",
+        "hardhat-gas-reporter": "^1.0.8",
+        "solidity-coverage": "^0.8.1",
+        "ts-node": ">=8.0.0",
+        "typechain": "^8.3.0",
+        "typescript": ">=4.5.0"
+    },
+    "dependencies": {
+        "@openzeppelin/contracts": "^4.9.6"
+    },
+    "engines": {
+        "node": ">=16.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/your-repo/somnia-mines-contracts"
+    }
+}
