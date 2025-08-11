@@ -1293,21 +1293,23 @@
                 addToHistory(false, gameState.gemsFound, gameState.betAmount, 0);
                 showNotification(`Mine hit! Lost ${gameState.betAmount} GEM`, 'loss');
                 
-                // Get the final game state to reveal all mines
-                try {
-                    const g = await gameState.gameContract.getGame(gameState.currentGameId);
-                    const revealedCells = g[6]; // revealedCells array from contract
+                // Reveal the entire board: show mines as bombs and gems as diamonds
+                for (let i = 0; i < 25; i++) {
+                    const cell = document.querySelectorAll('.mine-cell')[i];
                     
-                    // Reveal all mines (cells that are not revealed and contain mines)
-                    for (let i = 0; i < 25; i++) {
-                        if (!revealedCells[i]) {
-                            const cell = document.querySelectorAll('.mine-cell')[i];
-                            cell.classList.add('mine');
-                            cell.innerHTML = '💣';
-                        }
+                    if (gameState.minePositions.includes(i)) {
+                        // This is a mine - show as bomb
+                        cell.classList.add('mine');
+                        cell.innerHTML = '💣';
+                    } else if (gameState.revealedCells.includes(i)) {
+                        // This was a gem they found before hitting the mine - show as diamond
+                        cell.classList.add('revealed');
+                        cell.innerHTML = '💎';
+                    } else {
+                        // This is an unrevealed gem - show as diamond (they didn't get to it)
+                        cell.classList.add('revealed');
+                        cell.innerHTML = '💎';
                     }
-                } catch (error) {
-                    console.error('Error revealing mines:', error);
                 }
                 
                 // For losers, reset game after delay
