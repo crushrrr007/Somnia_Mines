@@ -1118,16 +1118,7 @@
             }
         }
 
-        // Generate random mine positions
-        function generateMinePositions(mineCount) {
-            const positions = new Set();
-            while (positions.size < mineCount) {
-                positions.add(Math.floor(Math.random() * 25));
-            }
-            return Array.from(positions);
-        }
-
-        // Reveal a cell (off-chain UI only)
+        // Reveal a cell (on-chain)
         async function revealCell(index) {
             if (!gameState.isPlaying || gameState.revealedCells.includes(index)) {
                 return;
@@ -1136,28 +1127,40 @@
             const cell = document.querySelectorAll('.mine-cell')[index];
             gameState.revealedCells.push(index);
 
-            if (gameState.minePositions.includes(index)) {
-                // Hit a mine - game over (off-chain)
-                cell.classList.add('mine');
-                cell.innerHTML = '💣';
-                await endGame(false);
+            // Check if this cell is a mine by calling the contract
+            try {
+                const tx = await gameState.gameContract.revealCell(gameState.currentGameId, index);
+                await tx.wait();
+                
+                // After revealing, sync the game state from chain
+                const ended = await syncGameStateFromChain();
+                
+                if (ended === 'lost') {
+                    // Hit a mine - game over
+                    cell.classList.add('mine');
+                    cell.innerHTML = '💣';
+                    await endGame(false);
+                    return;
+                } else if (ended === 'won') {
+                    // All safe cells revealed
+                    cell.classList.add('revealed');
+                    cell.innerHTML = '💎';
+                    await endGame(true);
+                    return;
+                } else {
+                    // Found a gem, continue playing
+                    cell.classList.add('revealed');
+                    cell.innerHTML = '💎';
+                }
+                
+                updateDisplay();
+                
+            } catch (error) {
+                console.error('Reveal cell error:', error);
+                showNotification('Error revealing cell. Please try again.', 'loss');
+                // Revert the UI change if the transaction failed
+                gameState.revealedCells.pop();
                 return;
-            }
-
-            // Found a gem
-            cell.classList.add('revealed');
-            cell.innerHTML = '💎';
-            gameState.gemsFound++;
-
-            // Update multiplier from local table for UX; final payout calculated on-chain at cashout
-            const multiplierTable = multiplierTables[gameState.mineCount];
-            gameState.currentMultiplier = multiplierTable[gameState.gemsFound];
-
-            updateDisplay();
-
-            const totalSafeCells = 25 - gameState.mineCount;
-            if (gameState.gemsFound === totalSafeCells) {
-                await endGame(true);
             }
         }
 
@@ -1235,14 +1238,22 @@
                 addToHistory(false, gameState.gemsFound, gameState.betAmount, 0);
                 showNotification(`Mine hit! Lost ${gameState.betAmount} GEM`, 'loss');
                 
-                // Reveal all mines
-                gameState.minePositions.forEach(pos => {
-                    const cell = document.querySelectorAll('.mine-cell')[pos];
-                    if (!gameState.revealedCells.includes(pos)) {
-                        cell.classList.add('mine');
-                        cell.innerHTML = '💣';
+                // Get the final game state to reveal all mines
+                try {
+                    const g = await gameState.gameContract.getGame(gameState.currentGameId);
+                    const revealedCells = g[6]; // revealedCells array from contract
+                    
+                    // Reveal all mines (cells that are not revealed and contain mines)
+                    for (let i = 0; i < 25; i++) {
+                        if (!revealedCells[i]) {
+                            const cell = document.querySelectorAll('.mine-cell')[i];
+                            cell.classList.add('mine');
+                            cell.innerHTML = '💣';
+                        }
                     }
-                });
+                } catch (error) {
+                    console.error('Error revealing mines:', error);
+                }
             }
             
             // Disable all cells
