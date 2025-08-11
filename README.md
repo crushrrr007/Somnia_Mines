@@ -1,5 +1,5 @@
 ## Somnia Mines — Hackathon Submission
-
+live on https://somniaminess.netlify.app/
 ### Overview
 Somnia Mines is a provably-fair, on-chain mines game on Somnia Testnet where players use GEM tokens to place bets, reveal cells, and cash out winnings based on multipliers.
 
