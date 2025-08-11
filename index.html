@@ -1166,7 +1166,7 @@
 
         // Cash out (single on-chain txn using claimed progress)
         async function cashOut() {
-            if (!gameState.isPlaying || gameState.gemsFound === 0) {
+            if (!gameState.isPlaying && gameState.gemsFound === 0) {
                 return;
             }
             
@@ -1183,6 +1183,7 @@
                 hideTransactionStatus();
                 showNotification(`Cashed out! Won ${expectedWin} GEM (${gameState.currentMultiplier}x)`, 'win');
                 
+                // Update balances and reset game
                 await updateBalances();
                 resetGame();
                 
@@ -1231,9 +1232,19 @@
             if (won) {
                 gameState.totalWins++;
                 const winAmount = Math.floor(gameState.betAmount * gameState.currentMultiplier);
-                gameState.gemBalance += winAmount;
+                // Don't add to balance yet - wait for cashout
                 addToHistory(true, gameState.gemsFound, gameState.betAmount, winAmount);
-                showNotification(`You won! ${winAmount} GEM (${gameState.currentMultiplier}x)`, 'win');
+                showNotification(`You won! Click Cash Out to claim ${winAmount} GEM (${gameState.currentMultiplier}x)`, 'win');
+                
+                // Keep cashout button visible for winner
+                document.getElementById('cashoutButton').style.display = 'block';
+                document.getElementById('playButton').style.display = 'none';
+                
+                // Disable all cells but don't reset game yet
+                document.querySelectorAll('.mine-cell').forEach(cell => {
+                    cell.classList.add('disabled');
+                });
+                
             } else {
                 addToHistory(false, gameState.gemsFound, gameState.betAmount, 0);
                 showNotification(`Mine hit! Lost ${gameState.betAmount} GEM`, 'loss');
@@ -1254,15 +1265,13 @@
                 } catch (error) {
                     console.error('Error revealing mines:', error);
                 }
+                
+                // For losers, reset game after delay
+                await updateBalances();
+                setTimeout(resetGame, 3000);
             }
             
-            // Disable all cells
-            document.querySelectorAll('.mine-cell').forEach(cell => {
-                cell.classList.add('disabled');
-            });
-            
             await updateBalances();
-            setTimeout(resetGame, 3000);
         }
 
         // Reset game UI
